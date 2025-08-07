@@ -1,10 +1,10 @@
-namespace App
+namespace MorningRoutine
 
 module Main =
 
   open Feliz
-  open App.Components
+  open MorningRoutine.Components
   open Browser.Dom
 
-  let root = ReactDOM.createRoot(document.getElementById "feliz-app")
-  root.render(Form.Component())
+  let root = ReactDOM.createRoot(document.getElementById "morning-routine-app")
+  root.render(RoutineTracker.Component())

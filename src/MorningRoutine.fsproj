@@ -4,13 +4,11 @@
   </PropertyGroup>
   <ItemGroup>
     <None Include="index.html" />
-    <Compile Include="HeadlessUI.fs" />
-    <Compile Include="Form.fs" />
+    <Compile Include="RoutineTracker.fs" />
     <Compile Include="Main.fs" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Feliz" Version="2.6.0" />
-    <PackageReference Include="Feliz.Router" Version="4.0.0" />
     <PackageReference Include="Feliz.UseElmish" Version="2.5.0" />
     <PackageReference Include="Fable.React" Version="9.4.0" />
   </ItemGroup>

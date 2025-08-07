@@ -1,8 +1,9 @@
 {
+  "name": "morning-routine",
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "dotnet tool restore && dotnet fable watch src --runFast vite",
+    "start": "dotnet tool restore && dotnet fable watch src --run vite",
     "build": "dotnet tool restore && dotnet fable src --run vite build",
     "clean": "dotnet fable clean src --yes"
   },
@@ -13,7 +14,6 @@
     "use-sync-external-store": "^1.2.2"
   },
   "devDependencies": {
-    "@tailwindcss/forms": "^0.5.9",
     "@vitejs/plugin-react": "^4.3.3",
     "autoprefixer": "^10.4.20",
     "postcss": "^8.4.47",
