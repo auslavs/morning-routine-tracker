@@ -144,7 +144,7 @@ module RoutineTracker =
     let state, dispatch = React.useElmish(State.init, State.update)
 
     Html.div [
-      prop.className "max-w-md mx-auto p-8 bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl shadow-lg border-2 border-purple-200"
+      prop.className "w-full md:max-w-md md:mx-auto md:p-8 p-6 bg-gradient-to-br from-blue-50 to-purple-50 md:rounded-2xl md:shadow-lg md:border-2 md:border-purple-200 min-h-screen md:min-h-0"
       prop.children [
         Html.h1 [
           prop.className "text-4xl font-bold text-center mb-6 text-purple-600"
@@ -175,34 +175,62 @@ module RoutineTracker =
 
             // Control buttons
             Html.div [
-              prop.className "flex justify-center space-x-2"
+              prop.className "flex justify-center space-x-4"
               prop.children [
                 Html.button [
-                  prop.className "px-6 py-3 bg-green-500 text-white rounded-xl hover:bg-green-600 disabled:opacity-50 font-semibold text-lg shadow-md transform transition-transform hover:scale-105"
+                  prop.className "w-20 h-20 bg-green-500 text-white rounded-xl hover:bg-green-600 disabled:opacity-50 font-semibold shadow-md transform transition-transform hover:scale-105 flex flex-col items-center justify-center"
                   prop.disabled (state.Status = Running || (state.Tasks |> List.forall (fun t -> t.IsCompleted)))
                   prop.onClick (fun _ -> dispatch Start)
-                  prop.text "🚀 Start"
+                  prop.children [
+                    Html.div [
+                      prop.className "text-2xl mb-1"
+                      prop.text "🚀"
+                    ]
+                    Html.div [
+                      prop.className "text-sm"
+                      prop.text "Start"
+                    ]
+                  ]
                 ]
                 Html.button [
-                  prop.className "px-6 py-3 bg-yellow-500 text-white rounded-xl hover:bg-yellow-600 disabled:opacity-50 font-semibold text-lg shadow-md transform transition-transform hover:scale-105"
+                  prop.className "w-20 h-20 bg-yellow-500 text-white rounded-xl hover:bg-yellow-600 disabled:opacity-50 font-semibold shadow-md transform transition-transform hover:scale-105 flex flex-col items-center justify-center"
                   prop.disabled (state.Status <> Running)
                   prop.onClick (fun _ -> dispatch Pause)
-                  prop.text "⏸️ Pause"
+                  prop.children [
+                    Html.div [
+                      prop.className "text-2xl mb-1"
+                      prop.text "⏸️"
+                    ]
+                    Html.div [
+                      prop.className "text-sm"
+                      prop.text "Pause"
+                    ]
+                  ]
                 ]
                 Html.button [
-                  prop.className "px-6 py-3 bg-red-500 text-white rounded-xl hover:bg-red-600 disabled:opacity-50 font-semibold text-lg shadow-md transform transition-transform hover:scale-105"
+                  prop.className "w-20 h-20 bg-red-500 text-white rounded-xl hover:bg-red-600 disabled:opacity-50 font-semibold shadow-md transform transition-transform hover:scale-105 flex flex-col items-center justify-center"
                   prop.disabled (state.Status = NotStarted)
                   prop.onClick (fun _ -> dispatch Reset)
-                  prop.text "🔄 Reset"
+                  prop.children [
+                    Html.div [
+                      prop.className "text-2xl mb-1"
+                      prop.text "🔄"
+                    ]
+                    Html.div [
+                      prop.className "text-sm"
+                      prop.text "Reset"
+                    ]
+                  ]
                 ]
               ]
             ]
 
             // Tasks checklist
             Html.div [
+              prop.className "flex flex-col items-center w-full"
               prop.children [
                 Html.div [
-                  prop.className "space-y-3"
+                  prop.className "space-y-3 w-[350px]"
                   prop.children [
                     for taskStatus in state.Tasks do
                       Html.label [
