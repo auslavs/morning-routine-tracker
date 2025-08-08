@@ -10,6 +10,8 @@ open Fable.Core.JS
 
 module RoutineTracker =
 
+  let [<Literal>] private initialTotalTime = 20.0
+
   type RoutineStatus =
     | NotStarted
     | Running
@@ -29,7 +31,7 @@ module RoutineTracker =
 
   type State = {
     Status: RoutineStatus
-    ElapsedTime: TimeSpan
+    RemainingTime: TimeSpan
     Tasks: TaskStatus list
   }
 
@@ -37,6 +39,7 @@ module RoutineTracker =
     | Start
     | Stop
     | Pause
+    | Reset
     | CompleteTask of Task
     | Tick
 
@@ -51,7 +54,7 @@ module RoutineTracker =
       ]
 
       { Status = NotStarted
-        ElapsedTime = TimeSpan.Zero
+        RemainingTime = TimeSpan.FromMinutes initialTotalTime
         Tasks = initialTasks }, Cmd.none
 
     let update msg state =
@@ -59,9 +62,10 @@ module RoutineTracker =
       | Start ->
         { state with Status = Running }, Cmd.ofMsg Tick
       | Stop ->
-        { state with Status = Stopped }, Cmd.none
+        { state with Status = Stopped; RemainingTime = TimeSpan.FromMinutes(initialTotalTime) }, Cmd.none
       | Pause ->
         { state with Status = Paused }, Cmd.none
+      | Reset -> init ()
       | CompleteTask task ->
         let updatedTasks =
           state.Tasks
@@ -80,7 +84,6 @@ module RoutineTracker =
           { newState with Status = Paused }, Cmd.none
         | Paused, false, true -> 
           // Was all completed, now unchecked something - auto resume (start ticking)
-          printfn "Resuming routine..."
           { newState with Status = Running }, Cmd.ofMsg Tick
         | _ -> 
           // No status change needed
@@ -88,19 +91,30 @@ module RoutineTracker =
       | Tick ->
         match state.Status with
         | Running ->
-          let newState = { state with ElapsedTime = state.ElapsedTime.Add(TimeSpan.FromSeconds(1.0)) }
-          // Check if all tasks are completed after updating time - if so, don't schedule next tick
-          let allTasksCompleted = newState.Tasks |> List.forall (fun t -> t.IsCompleted)
-          if allTasksCompleted then
-            // Auto-pause when all tasks are completed
-            { newState with Status = Paused }, Cmd.none
+          let newRemainingTime = state.RemainingTime.Subtract(TimeSpan.FromSeconds 1.0)
+          let newState = { state with RemainingTime = newRemainingTime }
+
+          // Check for audio prompts at 5-minute intervals
+          Audio.playTimePrompt newRemainingTime
+
+          // Check if time has run out
+          if newRemainingTime <= TimeSpan.Zero then
+            // Time's up - auto-pause and play completion sound
+            Audio.playCompletionPrompt()
+            { newState with Status = Paused; RemainingTime = TimeSpan.Zero }, Cmd.none
           else
-            // Continue ticking
-            let delayedTick = async {
-              do! Async.Sleep(1000)
-              return Tick
-            }
-            newState, Cmd.OfAsync.perform id delayedTick id
+            // Check if all tasks are completed after updating time - if so, don't schedule next tick
+            let allTasksCompleted = newState.Tasks |> List.forall (fun t -> t.IsCompleted)
+            if allTasksCompleted then
+              // Auto-pause when all tasks are completed
+              { newState with Status = Paused }, Cmd.none
+            else
+              // Continue ticking
+              let delayedTick = async {
+                do! Async.Sleep(1000)
+                return Tick
+              }
+              newState, Cmd.OfAsync.perform id delayedTick id
         | _ ->
           state, Cmd.none
 
@@ -111,6 +125,11 @@ module RoutineTracker =
     | WordsPractise -> "Words Practise"
 
   let formatTime (timeSpan: TimeSpan) =
+    sprintf "%02d:%02d" 
+      timeSpan.Minutes 
+      timeSpan.Seconds
+
+  let formatTimeWithHours (timeSpan: TimeSpan) =
     sprintf "%02d:%02d:%02d" 
       (int timeSpan.TotalHours) 
       timeSpan.Minutes 
@@ -153,18 +172,11 @@ module RoutineTracker =
               ]
             ]
 
-            // Timer display
+            // Circular Timer display
             Html.div [
               prop.className "text-center"
               prop.children [
-                Html.h3 [
-                  prop.className "text-lg font-semibold mb-2"
-                  prop.text "Elapsed Time"
-                ]
-                Html.p [
-                  prop.className "text-2xl font-mono text-blue-600"
-                  prop.text (formatTime state.ElapsedTime)
-                ]
+                CircularTimer.Component state.RemainingTime (TimeSpan.FromMinutes(initialTotalTime))
               ]
             ]
 
@@ -187,8 +199,8 @@ module RoutineTracker =
                 Html.button [
                   prop.className "px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 disabled:opacity-50"
                   prop.disabled (state.Status = NotStarted)
-                  prop.onClick (fun _ -> dispatch Stop)
-                  prop.text "Stop"
+                  prop.onClick (fun _ -> dispatch Reset)
+                  prop.text "Reset"
                 ]
               ]
             ]
