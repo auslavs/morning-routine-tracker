@@ -22,7 +22,6 @@ module RoutineTracker =
     | EatBreakfast
     | GetDressed
     | BrushedTeeth
-    | WordsPractise
 
   type TaskStatus = {
     Task: Task
@@ -50,7 +49,6 @@ module RoutineTracker =
         { Task = EatBreakfast; IsCompleted = false }
         { Task = GetDressed; IsCompleted = false }
         { Task = BrushedTeeth; IsCompleted = false }
-        { Task = WordsPractise; IsCompleted = false }
       ]
 
       { Status = NotStarted
@@ -119,10 +117,9 @@ module RoutineTracker =
           state, Cmd.none
 
   let taskToString = function
-    | EatBreakfast -> "Eat Breakfast"
-    | GetDressed -> "Get Dressed"
-    | BrushedTeeth -> "Brushed Teeth"
-    | WordsPractise -> "Words Practise"
+    | EatBreakfast -> "🍽️ Eat Breakfast"
+    | GetDressed -> "👕 Get Dressed"
+    | BrushedTeeth -> "🦷 Brush Teeth"
 
   let formatTime (timeSpan: TimeSpan) =
     sprintf "%02d:%02d" 
@@ -147,11 +144,11 @@ module RoutineTracker =
     let state, dispatch = React.useElmish(State.init, State.update)
 
     Html.div [
-      prop.className "max-w-md mx-auto p-6 bg-white rounded-lg shadow-md"
+      prop.className "max-w-md mx-auto p-8 bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl shadow-lg border-2 border-purple-200"
       prop.children [
         Html.h1 [
-          prop.className "text-3xl font-bold text-center mb-6 text-gray-800"
-          prop.text "Morning Routine Tracker"
+          prop.className "text-4xl font-bold text-center mb-6 text-purple-600"
+          prop.text "My Morning"
         ]
         
         Html.div [
@@ -161,10 +158,6 @@ module RoutineTracker =
             Html.div [
               prop.className "text-center"
               prop.children [
-                Html.h2 [
-                  prop.className "text-xl font-semibold mb-2"
-                  prop.text "Routine Status"
-                ]
                 Html.p [
                   prop.className "text-lg text-gray-600"
                   prop.text (statusToString state.Status)
@@ -185,22 +178,22 @@ module RoutineTracker =
               prop.className "flex justify-center space-x-2"
               prop.children [
                 Html.button [
-                  prop.className "px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 disabled:opacity-50"
+                  prop.className "px-6 py-3 bg-green-500 text-white rounded-xl hover:bg-green-600 disabled:opacity-50 font-semibold text-lg shadow-md transform transition-transform hover:scale-105"
                   prop.disabled (state.Status = Running || (state.Tasks |> List.forall (fun t -> t.IsCompleted)))
                   prop.onClick (fun _ -> dispatch Start)
-                  prop.text "Start"
+                  prop.text "🚀 Start"
                 ]
                 Html.button [
-                  prop.className "px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600 disabled:opacity-50"
+                  prop.className "px-6 py-3 bg-yellow-500 text-white rounded-xl hover:bg-yellow-600 disabled:opacity-50 font-semibold text-lg shadow-md transform transition-transform hover:scale-105"
                   prop.disabled (state.Status <> Running)
                   prop.onClick (fun _ -> dispatch Pause)
-                  prop.text "Pause"
+                  prop.text "⏸️ Pause"
                 ]
                 Html.button [
-                  prop.className "px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 disabled:opacity-50"
+                  prop.className "px-6 py-3 bg-red-500 text-white rounded-xl hover:bg-red-600 disabled:opacity-50 font-semibold text-lg shadow-md transform transition-transform hover:scale-105"
                   prop.disabled (state.Status = NotStarted)
                   prop.onClick (fun _ -> dispatch Reset)
-                  prop.text "Reset"
+                  prop.text "🔄 Reset"
                 ]
               ]
             ]
@@ -208,27 +201,28 @@ module RoutineTracker =
             // Tasks checklist
             Html.div [
               prop.children [
-                Html.h3 [
-                  prop.className "text-lg font-semibold mb-3"
-                  prop.text "Morning Tasks"
-                ]
                 Html.div [
-                  prop.className "space-y-2"
+                  prop.className "space-y-3"
                   prop.children [
                     for taskStatus in state.Tasks do
                       Html.label [
-                        prop.className "flex items-center space-x-3 cursor-pointer"
+                        prop.className "flex items-center space-x-4 cursor-pointer p-3 rounded-xl bg-white shadow-sm hover:shadow-md transition-shadow border-2 border-gray-100 hover:border-purple-200"
                         prop.children [
                           Html.input [
                             prop.type' "checkbox"
-                            prop.className "h-4 w-4 text-blue-600 rounded focus:ring-blue-500"
+                            prop.className "h-6 w-6 text-purple-600 rounded-lg focus:ring-purple-500 focus:ring-2"
                             prop.isChecked taskStatus.IsCompleted
                             prop.onChange (fun (isChecked: bool) -> dispatch (CompleteTask taskStatus.Task))
                           ]
                           Html.span [
-                            prop.className (if taskStatus.IsCompleted then "line-through text-gray-500" else "text-gray-700")
+                            prop.className (if taskStatus.IsCompleted then "line-through text-gray-500 text-lg" else "text-gray-700 text-lg font-medium")
                             prop.text (taskToString taskStatus.Task)
                           ]
+                          if taskStatus.IsCompleted then
+                            Html.span [
+                              prop.className "ml-auto text-2xl animate-pulse"
+                              prop.text "⭐"
+                            ]
                         ]
                       ]
                   ]
