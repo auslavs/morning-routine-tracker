@@ -17,7 +17,7 @@ module TaskChecklist =
         prop.children [
           Html.input [
             prop.type' "checkbox"
-            prop.className "h-6 w-6 text-purple-600 rounded-lg"
+            prop.className "h-6 w-6 text-purple-600 accent-purple-500 rounded-lg"
             prop.isChecked taskStatus.IsCompleted
             prop.onChange (fun (_isChecked: bool) -> completeTask taskStatus.Task)
           ]

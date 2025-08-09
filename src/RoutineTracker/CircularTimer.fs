@@ -156,7 +156,7 @@ module CircularTimer =
                 ]
                 if not isTimerStarted && not isDragging then
                   Html.div [
-                    prop.className "text-xs text-blue-500 mt-2 opacity-70"
+                    prop.className "text-xs text-purple-500 mt-2 opacity-70"
                     prop.text "Tap & drag to adjust"
                   ]
               ]
