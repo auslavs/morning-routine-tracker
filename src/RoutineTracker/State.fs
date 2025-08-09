@@ -1,8 +1,6 @@
 namespace MorningRoutine.Components.RoutineTracker
 
 open System
-open Feliz
-open Feliz.UseElmish
 open Elmish
 open MorningRoutine.Components
 
@@ -29,10 +27,11 @@ module State =
 
   let private handleCompleteTask task state =
     let updatedTasks =
-        state.Tasks
-        |> List.map (fun t -> 
-        if t.Task = task then { t with IsCompleted = not t.IsCompleted }
-        else t)
+      state.Tasks |> List.map (fun t -> 
+        if t.Task = task
+        then { t with IsCompleted = not t.IsCompleted }
+        else t
+      )
     
     let newState = { state with Tasks = updatedTasks }
     let allTasksCompleted = updatedTasks |> List.forall (fun t -> t.IsCompleted)

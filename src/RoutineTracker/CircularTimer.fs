@@ -1,4 +1,4 @@
-namespace MorningRoutine.Components
+namespace MorningRoutine.Components.RoutineTracker
 
 open System
 open Feliz
@@ -25,7 +25,7 @@ module CircularTimer =
   let Component (remainingTime: TimeSpan) (totalTime: TimeSpan) =
     let progress = calculateProgress remainingTime totalTime
     let color = getCircleColor remainingTime totalTime
-    let circumference = 2.0 * System.Math.PI * 90.0 // radius = 90
+    let circumference = 2.0 * Math.PI * 90.0 // radius = 90
     let strokeDashoffset = circumference - (progress / 100.0) * circumference
 
     Html.div [
@@ -54,12 +54,7 @@ module CircularTimer =
               svg.fill "transparent"
               svg.strokeDasharray [|int circumference; int circumference |]
               svg.strokeDashoffset strokeDashoffset
-
-              // svg.style [
-              //   style.strokeDasharray strokeDasharray
-              //   style.strokeDashoffset strokeDashoffset
-              //   style.transition "stroke-dashoffset 1s ease-in-out, stroke 0.3s ease"
-              // ]
+              svg.custom("transition", "stroke-dashoffset 1s ease-in-out, stroke 0.3s ease")
               svg.strokeLineCap "round"
             ]
           ]
