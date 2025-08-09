@@ -6,7 +6,11 @@
     <None Include="index.html" />
     <Compile Include="Audio.fs" />
     <Compile Include="CircularTimer.fs" />
-    <Compile Include="RoutineTracker.fs" />
+    <Compile Include="RoutineTracker\Types.fs" />
+    <Compile Include="RoutineTracker\State.fs" />
+    <Compile Include="RoutineTracker\ControlPanel.fs" />
+    <Compile Include="RoutineTracker\TaskChecklist.fs" />
+    <Compile Include="RoutineTracker\RoutineTracker.fs" />
     <Compile Include="Main.fs" />
   </ItemGroup>
   <ItemGroup>

@@ -26,7 +26,6 @@ module CircularTimer =
     let progress = calculateProgress remainingTime totalTime
     let color = getCircleColor remainingTime totalTime
     let circumference = 2.0 * System.Math.PI * 90.0 // radius = 90
-    //let strokeDasharray = sprintf "%.2f %.2f" circumference circumference
     let strokeDashoffset = circumference - (progress / 100.0) * circumference
 
     Html.div [

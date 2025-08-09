@@ -6,7 +6,6 @@ module Audio =
   open Fable.Core
   open Fable.Core.JsInterop
 
-
   [<StringEnum; RequireQualifiedAccess>]
   type OscillatorType =
     | Sine
