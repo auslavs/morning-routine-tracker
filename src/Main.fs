@@ -7,4 +7,4 @@ module Main =
   open Browser.Dom
 
   let root = ReactDOM.createRoot(document.getElementById "morning-routine-app")
-  root.render(RoutineTracker.Component())
+  root.render(RoutineTracker.Component.Render())

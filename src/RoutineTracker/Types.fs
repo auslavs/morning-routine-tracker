@@ -31,6 +31,7 @@ module Types =
   type State = {
     Status: RoutineStatus
     RemainingTime: TimeSpan
+    TotalTime: TimeSpan
     Tasks: TaskStatus list
   }
 
@@ -41,3 +42,4 @@ module Types =
     | Reset
     | CompleteTask of Task
     | Tick
+    | AdjustTotalTime of TimeSpan

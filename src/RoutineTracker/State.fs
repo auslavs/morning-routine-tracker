@@ -15,8 +15,10 @@ module State =
       { Task = BrushedTeeth; IsCompleted = false }
     ]
 
+    let totalTime = TimeSpan.FromMinutes initialTotalTime
     { Status = NotStarted
-      RemainingTime = TimeSpan.FromMinutes initialTotalTime
+      RemainingTime = totalTime
+      TotalTime = totalTime
       Tasks = initialTasks }, Cmd.none
 
   let private delayedTick =
@@ -78,7 +80,7 @@ module State =
     | Start ->
       { state with Status = Running }, Cmd.OfAsync.perform id delayedTick id
     | Stop ->
-      { state with Status = Stopped; RemainingTime = TimeSpan.FromMinutes(initialTotalTime) }, Cmd.none
+      { state with Status = Stopped; RemainingTime = state.TotalTime }, Cmd.none
     | Pause ->
       { state with Status = Paused }, Cmd.none
     | Reset -> init ()
@@ -86,4 +88,15 @@ module State =
         handleCompleteTask task state
     | Tick ->
         handleTick state
+    | AdjustTotalTime newTotalTime ->
+        // Only allow adjustment when not running
+        match state.Status with
+        | NotStarted | Paused | Stopped ->
+            let clampedTime = 
+                if newTotalTime < TimeSpan.FromMinutes(1.0) then TimeSpan.FromMinutes(1.0)
+                elif newTotalTime > TimeSpan.FromMinutes(60.0) then TimeSpan.FromMinutes(60.0)
+                else newTotalTime
+            { state with TotalTime = clampedTime; RemainingTime = clampedTime }, Cmd.none
+        | Running ->
+            state, Cmd.none
     

@@ -3,7 +3,6 @@ namespace MorningRoutine.Components.RoutineTracker
 module TaskChecklist =
 
   open Feliz
-  open MorningRoutine.Components.RoutineTracker.Types
 
   module Task =
 
@@ -18,7 +17,7 @@ module TaskChecklist =
         prop.children [
           Html.input [
             prop.type' "checkbox"
-            prop.className "h-6 w-6 text-purple-600 rounded-lg focus:ring-purple-500 focus:ring-2"
+            prop.className "h-6 w-6 text-purple-600 rounded-lg"
             prop.isChecked taskStatus.IsCompleted
             prop.onChange (fun (_isChecked: bool) -> completeTask taskStatus.Task)
           ]
@@ -28,7 +27,7 @@ module TaskChecklist =
           ]
           if taskStatus.IsCompleted then
             Html.span [
-              prop.className "ml-auto text-2xl animate-pulse"
+              prop.className "ml-auto text-lg animate-pulse"
               prop.text "⭐"
             ]
         ]

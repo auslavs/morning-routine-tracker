@@ -1,13 +1,13 @@
-namespace MorningRoutine.Components
+namespace MorningRoutine.Components.RoutineTracker
 
-module RoutineTracker =
+module Component =
   open System
   open Feliz
   open Feliz.UseElmish
   open MorningRoutine.Components.RoutineTracker
 
   [<ReactComponent>]
-  let Component () =
+  let Render () =
     
     let state, dispatch = React.useElmish(State.init, State.update)
 
@@ -37,7 +37,7 @@ module RoutineTracker =
             Html.div [
               prop.className "text-center"
               prop.children [
-                CircularTimer.Component state.RemainingTime (TimeSpan.FromMinutes State.initialTotalTime)
+                CircularTimer.Component state.RemainingTime state.TotalTime (dispatch << AdjustTotalTime)
               ]
             ]
 
