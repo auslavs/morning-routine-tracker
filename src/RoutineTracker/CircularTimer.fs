@@ -80,19 +80,18 @@ module CircularTimer =
         let handleGlobalMouseMove (e: Browser.Types.Event) =
           let mouseEvent = e :?> Browser.Types.MouseEvent
           handleMove mouseEvent.clientY
-          
-        let handleGlobalMouseUp (e: Browser.Types.Event) =
+
+        let handleGlobalMouseUp (_: Browser.Types.Event) =
           handleEnd()
 
         Browser.Dom.document.addEventListener("mousemove", handleGlobalMouseMove)
         Browser.Dom.document.addEventListener("mouseup", handleGlobalMouseUp)
-        
-        Some(React.createDisposable(fun () ->
+
+        fun () ->
           Browser.Dom.document.removeEventListener("mousemove", handleGlobalMouseMove)
           Browser.Dom.document.removeEventListener("mouseup", handleGlobalMouseUp)
-        ))
       else
-        None
+        fun () -> ()
     ), [| box isDragging |])
 
     Html.div [

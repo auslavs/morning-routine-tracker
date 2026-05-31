@@ -210,3 +210,4 @@ out
 .ionide
 *.fs.js
 *.fs.js.map
+.playwright-mcp

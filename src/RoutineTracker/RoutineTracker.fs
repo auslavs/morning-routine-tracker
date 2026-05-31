@@ -18,10 +18,9 @@ module Component =
       let refresh = fun (_: Browser.Types.Event) -> dispatch RefreshTime
       Browser.Dom.document.addEventListener("visibilitychange", refresh)
       Browser.Dom.window.addEventListener("focus", refresh)
-      Some(React.createDisposable(fun () ->
+      fun () ->
         Browser.Dom.document.removeEventListener("visibilitychange", refresh)
         Browser.Dom.window.removeEventListener("focus", refresh)
-      ))
     ), [||])
 
     Html.div [
