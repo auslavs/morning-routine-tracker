@@ -3,10 +3,10 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
-  base: "/morning-routine-tracker/",
+  base: "/",
   root: "./src",
   build: {
-    outDir: "../docs",
+    outDir: "../dist",
     emptyOutDir: true,
   },
   server: {

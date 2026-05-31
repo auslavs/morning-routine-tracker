@@ -19,7 +19,8 @@ module State =
     { Status = NotStarted
       RemainingTime = totalTime
       TotalTime = totalTime
-      Tasks = initialTasks }, Cmd.none
+      Tasks = initialTasks
+      Deadline = None }, Cmd.none
 
   let private delayedTick =
     async {
@@ -27,76 +28,108 @@ module State =
       return Tick
     }
 
+  let private computeRemaining state =
+    match state.Deadline with
+    | Some d ->
+        let remaining = d - DateTime.UtcNow
+        if remaining > TimeSpan.Zero then remaining else TimeSpan.Zero
+    | None -> state.RemainingTime
+
+  let private freezeRemaining state =
+    { state with RemainingTime = computeRemaining state; Deadline = None }
+
+  let private startRunning state =
+    let deadline = DateTime.UtcNow + state.RemainingTime
+    { state with Status = Running; Deadline = Some deadline },
+    Cmd.OfAsync.perform id delayedTick id
+
+  // Detect crossings of the 15/10/5-minute thresholds so audio prompts still fire
+  // even when ticks were delayed past the exact second mark.
+  let private playPromptsForCrossings (previous: TimeSpan) (current: TimeSpan) =
+    let crossed (mins: int) =
+      let threshold = TimeSpan.FromMinutes(float mins)
+      previous > threshold && current <= threshold
+    if crossed 15 || crossed 10 || crossed 5 then
+      Audio.playBeep()
+
+  // Pure tick: advance RemainingTime from the wall clock and handle completion/end-of-time.
+  // Does not schedule the next tick — callers decide.
+  let private advanceTickState state =
+    let previousRemaining = state.RemainingTime
+    let newRemaining = computeRemaining state
+    playPromptsForCrossings previousRemaining newRemaining
+
+    if newRemaining <= TimeSpan.Zero then
+      Audio.playCompletionPrompt()
+      { state with Status = Paused; RemainingTime = TimeSpan.Zero; Deadline = None }
+    else
+      let allTasksCompleted = state.Tasks |> List.forall (fun t -> t.IsCompleted)
+      if allTasksCompleted then
+        { state with Status = Paused; RemainingTime = newRemaining; Deadline = None }
+      else
+        { state with RemainingTime = newRemaining }
+
   let private handleCompleteTask task state =
     let updatedTasks =
-      state.Tasks |> List.map (fun t -> 
+      state.Tasks |> List.map (fun t ->
         if t.Task = task
         then { t with IsCompleted = not t.IsCompleted }
         else t
       )
-    
+
     let newState = { state with Tasks = updatedTasks }
     let allTasksCompleted = updatedTasks |> List.forall (fun t -> t.IsCompleted)
     let wasAllCompleted = state.Tasks |> List.forall (fun t -> t.IsCompleted)
-    
-    // Auto-pause when all tasks completed, auto-resume when unchecking if was running
+
     match state.Status, allTasksCompleted, wasAllCompleted with
-    | Running, true, false -> 
-        // Just completed all tasks - auto pause (no tick needed)
-        { newState with Status = Paused }, Cmd.none
-    | Paused, false, true -> 
-        // Was all completed, now unchecked something - auto resume (start ticking)
-        { newState with Status = Running }, Cmd.OfAsync.perform id delayedTick id
-    | _ -> 
-        // No status change needed
+    | Running, true, false ->
+        // Just completed all tasks - auto pause, freezing remaining at wall-clock value
+        let frozen = freezeRemaining newState
+        { frozen with Status = Paused }, Cmd.none
+    | Paused, false, true ->
+        // Was all completed, now unchecked something - auto resume from frozen remaining
+        startRunning newState
+    | _ ->
         newState, Cmd.none
 
   let private handleTick state =
     match state.Status with
     | Running ->
-        let newRemainingTime = state.RemainingTime.Subtract(TimeSpan.FromSeconds 1.0)
-        let newState = { state with RemainingTime = newRemainingTime }
-
-        // Check for audio prompts at 5-minute intervals
-        Audio.playTimePrompt newRemainingTime
-
-        // Check if time has run out
-        if newRemainingTime <= TimeSpan.Zero then
-          Audio.playCompletionPrompt()
-          { newState with Status = Paused; RemainingTime = TimeSpan.Zero }, Cmd.none
-        else
-        // Check if all tasks are completed after updating time - if so, don't schedule next tick
-        let allTasksCompleted = newState.Tasks |> List.forall (fun t -> t.IsCompleted)
-        if allTasksCompleted then
-          // Auto-pause when all tasks are completed
-          { newState with Status = Paused }, Cmd.none
-        else
-          newState, Cmd.OfAsync.perform id delayedTick id
-      | _ ->
-          state, Cmd.none
+        let newState = advanceTickState state
+        match newState.Status with
+        | Running -> newState, Cmd.OfAsync.perform id delayedTick id
+        | _ -> newState, Cmd.none
+    | _ ->
+        state, Cmd.none
 
   let update msg state =
     match msg with
     | Start ->
-      { state with Status = Running }, Cmd.OfAsync.perform id delayedTick id
+      startRunning state
     | Stop ->
-      { state with Status = Stopped; RemainingTime = state.TotalTime }, Cmd.none
+      { state with Status = Stopped; RemainingTime = state.TotalTime; Deadline = None }, Cmd.none
     | Pause ->
-      { state with Status = Paused }, Cmd.none
+      let frozen = freezeRemaining state
+      { frozen with Status = Paused }, Cmd.none
     | Reset -> init ()
-    | CompleteTask task -> 
+    | CompleteTask task ->
         handleCompleteTask task state
     | Tick ->
         handleTick state
+    | RefreshTime ->
+        // Fired on tab visibility/focus changes so the display catches up immediately
+        // without waiting for the next scheduled tick. Does not schedule a new tick.
+        match state.Status with
+        | Running -> advanceTickState state, Cmd.none
+        | _ -> state, Cmd.none
     | AdjustTotalTime newTotalTime ->
         // Only allow adjustment when not running
         match state.Status with
         | NotStarted | Paused | Stopped ->
-            let clampedTime = 
+            let clampedTime =
                 if newTotalTime < TimeSpan.FromMinutes(1.0) then TimeSpan.FromMinutes(1.0)
                 elif newTotalTime > TimeSpan.FromMinutes(60.0) then TimeSpan.FromMinutes(60.0)
                 else newTotalTime
-            { state with TotalTime = clampedTime; RemainingTime = clampedTime }, Cmd.none
+            { state with TotalTime = clampedTime; RemainingTime = clampedTime; Deadline = None }, Cmd.none
         | Running ->
             state, Cmd.none
-    

@@ -33,6 +33,10 @@ module Types =
     RemainingTime: TimeSpan
     TotalTime: TimeSpan
     Tasks: TaskStatus list
+    // When Running, the wall-clock instant at which RemainingTime should reach zero.
+    // Lets us recompute remaining time from the real clock so background-tab throttling
+    // and device sleep don't cause the timer to drift.
+    Deadline: DateTime option
   }
 
   type Msg =
@@ -42,4 +46,5 @@ module Types =
     | Reset
     | CompleteTask of Task
     | Tick
+    | RefreshTime
     | AdjustTotalTime of TimeSpan
