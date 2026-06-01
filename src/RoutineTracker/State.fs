@@ -94,6 +94,18 @@ module State =
             |> Option.defaultValue true)
     | _ -> None
 
+  let private delayedTick =
+    async {
+      do! Async.Sleep(1000)
+      return Tick
+    }
+
+  let private tickCmd = Cmd.OfAsync.perform id delayedTick id
+
+  let private unixEpoch = DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)
+  let private toEpochMs (d: DateTime) = (d.ToUniversalTime() - unixEpoch).TotalMilliseconds
+  let private fromEpochMs (ms: float) = unixEpoch.AddMilliseconds(ms)
+
   let init () =
     let today = Persistence.todayIso()
     let settings = Persistence.loadSettings() |> Option.defaultWith defaultSettings
@@ -103,20 +115,36 @@ module State =
       | Some p -> reconcileProgress settings.Children p
       | None -> freshProgress settings.Children
     let total = TimeSpan.FromMinutes(float settings.TotalMinutes)
-    { Status = NotStarted
-      Deadline = None
-      RemainingTime = total
+
+    // Restore the timer from the last saved state for today. A running timer
+    // resumes from its absolute deadline so the countdown reflects real elapsed
+    // time while the tab was closed; if the deadline already passed, it lands
+    // paused at zero.
+    let status, deadline, remaining, cmd =
+      match Persistence.loadTimerFor today with
+      | Some stored ->
+          match stored.Status with
+          | "Running" ->
+              match stored.DeadlineEpochMs with
+              | Some ms ->
+                  let d = fromEpochMs ms
+                  let rem = d - DateTime.UtcNow
+                  if rem > TimeSpan.Zero then Running, Some d, rem, tickCmd
+                  else Paused, None, TimeSpan.Zero, Cmd.none
+              | None -> NotStarted, None, total, Cmd.none
+          | "Paused" -> Paused, None, TimeSpan.FromSeconds stored.RemainingSeconds, Cmd.none
+          | "Stopped" -> Stopped, None, total, Cmd.none
+          | _ -> NotStarted, None, total, Cmd.none
+      | None -> NotStarted, None, total, Cmd.none
+
+    { Status = status
+      Deadline = deadline
+      RemainingTime = remaining
       TotalTime = total
       Settings = settings
       Progress = progress
       ProgressDateIso = today
-      Tab = MyMorning }, Cmd.none
-
-  let private delayedTick =
-    async {
-      do! Async.Sleep(1000)
-      return Tick
-    }
+      Tab = MyMorning }, cmd
 
   let private computeRemaining (state: State) =
     match state.Deadline with
@@ -131,7 +159,7 @@ module State =
   let private startRunning (state: State) =
     let deadline = DateTime.UtcNow + state.RemainingTime
     { state with Status = Running; Deadline = Some deadline },
-    Cmd.OfAsync.perform id delayedTick id
+    tickCmd
 
   let private playPromptsForCrossings (state: State) (previous: TimeSpan) (current: TimeSpan) =
     if state.Settings.AudioEnabled then
@@ -146,6 +174,13 @@ module State =
 
   let private persistSettings (settings: FamilySettings) =
     Persistence.saveSettings settings
+
+  let private persistTimer (state: State) =
+    Persistence.saveTimer
+      { Date = state.ProgressDateIso
+        Status = RoutineStatus.toString state.Status
+        DeadlineEpochMs = state.Deadline |> Option.map toEpochMs
+        RemainingSeconds = state.RemainingTime.TotalSeconds }
 
   let private advanceTickState (state: State) =
     let previousRemaining = state.RemainingTime
@@ -181,10 +216,13 @@ module State =
 
     match state.Status, nowAllDone, wasAllDone with
     | Running, true, false ->
-        let frozen = freezeRemaining newState
-        { frozen with Status = Paused }, Cmd.none
+        let frozen = { freezeRemaining newState with Status = Paused }
+        persistTimer frozen
+        frozen, Cmd.none
     | Paused, false, true ->
-        startRunning newState
+        let next, cmd = startRunning newState
+        persistTimer next
+        next, cmd
     | _ ->
         newState, Cmd.none
 
@@ -193,21 +231,30 @@ module State =
     | Running ->
         let newState = advanceTickState state
         match newState.Status with
-        | Running -> newState, Cmd.OfAsync.perform id delayedTick id
-        | _ -> newState, Cmd.none
+        | Running -> newState, tickCmd
+        | _ ->
+            // The countdown hit zero (or all tasks were done): persist the
+            // paused result so a refresh doesn't revive a finished timer.
+            persistTimer newState
+            newState, Cmd.none
     | _ ->
         state, Cmd.none
 
   let update msg state =
     match msg with
     | Start ->
-        startRunning state
+        let next, cmd = startRunning state
+        persistTimer next
+        next, cmd
     | Stop ->
         let total = TimeSpan.FromMinutes(float state.Settings.TotalMinutes)
-        { state with Status = Stopped; RemainingTime = total; Deadline = None }, Cmd.none
+        let next = { state with Status = Stopped; RemainingTime = total; Deadline = None }
+        persistTimer next
+        next, Cmd.none
     | Pause ->
-        let frozen = freezeRemaining state
-        { frozen with Status = Paused }, Cmd.none
+        let frozen = { freezeRemaining state with Status = Paused }
+        persistTimer frozen
+        frozen, Cmd.none
     | Reset ->
         let total = TimeSpan.FromMinutes(float state.Settings.TotalMinutes)
         let progress = freshProgress state.Settings.Children
@@ -219,6 +266,7 @@ module State =
               TotalTime = total
               Progress = progress }
         persistProgress next
+        persistTimer next
         next, Cmd.none
     | CompleteTask (childId, taskId) ->
         handleCompleteTask state childId taskId
@@ -247,4 +295,5 @@ module State =
                   RemainingTime = total
                   Deadline = None }
         persistProgress next
+        persistTimer next
         next, Cmd.none

@@ -8,10 +8,21 @@ module Persistence =
 
   let private settingsKey = "morning.settings.v1"
   let private progressKey = "morning.progress.v1"
+  let private timerKey = "morning.timer.v1"
 
   type private StoredProgress = {
     Date: string
     Progress: ChildProgress list
+  }
+
+  // The running timer is restored after a refresh from the absolute deadline
+  // (epoch ms), so the countdown keeps ticking correctly even while the tab
+  // was closed. RemainingSeconds is used for the frozen (paused) value.
+  type StoredTimer = {
+    Date: string
+    Status: string
+    DeadlineEpochMs: float option
+    RemainingSeconds: float
   }
 
   let todayIso () : string =
@@ -48,4 +59,15 @@ module Persistence =
     |> Option.bind (fun json ->
         match Decode.Auto.fromString<StoredProgress>(json) with
         | Ok stored when stored.Date = today -> Some stored.Progress
+        | _ -> None)
+
+  let saveTimer (timer: StoredTimer) =
+    let json = Encode.Auto.toString(0, timer)
+    setItem timerKey json
+
+  let loadTimerFor (today: string) : StoredTimer option =
+    getItem timerKey
+    |> Option.bind (fun json ->
+        match Decode.Auto.fromString<StoredTimer>(json) with
+        | Ok stored when stored.Date = today -> Some stored
         | _ -> None)
