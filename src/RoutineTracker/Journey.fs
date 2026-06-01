@@ -40,15 +40,16 @@ module Journey =
     let dotXAt i = pathLeftPct + segment * float (i + 1)
     [
       // Translucent lane band so dots, names and the track stay legible
-      // over the illustrated landscape underneath.
+      // over the illustrated landscape underneath. -translate-y-1/2 centers
+      // the band on yPct (CSS percentage margins resolve against parent
+      // width, so we use a transform instead).
       Html.div [
-        prop.className "absolute rounded-full bg-white/55 backdrop-blur-sm ring-1 ring-white/40 shadow-sm"
+        prop.className "absolute -translate-y-1/2 rounded-full bg-white/55 backdrop-blur-sm ring-1 ring-white/40 shadow-sm"
         prop.style [
           style.top (length.perc yPct)
           style.left (length.perc 1.0)
           style.width (length.perc 98.0)
-          style.height (length.perc 14.0)
-          style.marginTop (length.perc -7.0)
+          style.height (length.perc 22.0)
         ]
       ]
 
