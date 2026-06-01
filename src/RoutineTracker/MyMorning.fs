@@ -143,12 +143,6 @@ module MyMorning =
             Journey.Percent = State.childProgressPercent state c.Id
             Journey.Completed = completed
             Journey.Total = total })
-    let totalCompleted =
-      state.Progress
-      |> List.sumBy (fun cp ->
-          cp.Tasks |> List.filter (fun t -> t.Completed) |> List.length)
-    let totalTasks =
-      state.Settings.Children |> List.sumBy (fun c -> c.Tasks.Length)
     let childrenLabel =
       match state.Settings.Children with
       | [] -> "!"
@@ -159,33 +153,26 @@ module MyMorning =
           let last = List.last names
           let head = names |> List.take (names.Length - 1) |> String.concat ", "
           sprintf ", %s & %s!" head last
+
+    let header =
+      Html.div [
+        Html.h1 [
+          prop.className "text-2xl md:text-3xl font-extrabold text-gray-800 drop-shadow-sm"
+          prop.children [
+            Html.span [ prop.text "Good Morning" ]
+            Html.span [ prop.className "hidden md:inline"; prop.text childrenLabel ]
+            Html.span [ prop.className "ml-2 hidden md:inline"; prop.text "☀️" ]
+          ]
+        ]
+        Html.p [
+          prop.className "text-gray-700 font-medium drop-shadow-sm"
+          prop.text "Let's crush this morning together!"
+        ]
+      ]
     Html.div [
       prop.className "space-y-4"
       prop.children [
-        Html.div [
-          prop.className "flex items-start justify-between gap-3"
-          prop.children [
-            Html.div [
-              prop.children [
-                Html.h1 [
-                  prop.className "text-2xl md:text-3xl font-extrabold text-gray-800"
-                  prop.children [
-                    Html.span [ prop.text "Good Morning" ]
-                    Html.span [ prop.text childrenLabel ]
-                    Html.span [ prop.className "ml-2"; prop.text "☀️" ]
-                  ]
-                ]
-                Html.p [
-                  prop.className "text-gray-600"
-                  prop.text "Let's crush this morning together!"
-                ]
-              ]
-            ]
-            FamilyScore.render totalCompleted totalTasks
-          ]
-        ]
-
-        Journey.render journeys
+        Journey.render header journeys
 
         timerBar state
 

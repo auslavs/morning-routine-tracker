@@ -8,7 +8,6 @@
     <Compile Include="RoutineTracker\Types.fs" />
     <Compile Include="Persistence.fs" />
     <Compile Include="RoutineTracker\State.fs" />
-    <Compile Include="RoutineTracker\FamilyScore.fs" />
     <Compile Include="RoutineTracker\Journey.fs" />
     <Compile Include="RoutineTracker\TaskCard.fs" />
     <Compile Include="RoutineTracker\MyMorning.fs" />

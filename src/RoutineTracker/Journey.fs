@@ -22,12 +22,13 @@ module Journey =
     let clamped = max 0.0 (min 1.0 percent)
     pathLeftPct + (clamped * pathWidthPct)
 
-  // Spread N children across vertical lanes 42% .. 70% of container height.
+  // Spread N children across vertical lanes near the bottom of the image
+  // (66% .. 88% of container height) so the road/path stays visible above.
   let private laneY (index: int) (count: int) =
-    if count <= 1 then 60.0
+    if count <= 1 then 84.0
     else
-      let top = 42.0
-      let bottom = 70.0
+      let top = 66.0
+      let bottom = 88.0
       top + (float index / float (count - 1)) * (bottom - top)
 
   let private clamp lo hi v = max lo (min hi v)
@@ -124,18 +125,38 @@ module Journey =
       ]
     ]
 
-  let render (journeys: ChildJourney list) =
+  // `header` is rendered as an overlay in front of the landscape image,
+  // pinned to the top where the sky leaves room (lanes sit near the bottom).
+  let render (header: ReactElement) (journeys: ChildJourney list) =
     let count = journeys.Length
-    let children =
+    let lanes =
       journeys
       |> List.mapi (fun i j -> laneElements count i j)
       |> List.concat
-    Html.div [
-      prop.className "relative w-full aspect-[16/9] md:aspect-[2/1] rounded-3xl overflow-hidden shadow-lg bg-gradient-to-b from-sky-200 via-sky-100 to-emerald-200"
-      prop.style [
-        style.custom("backgroundImage", "url('/img/journey/landscape.png')")
-        style.custom("backgroundSize", "cover")
-        style.custom("backgroundPosition", "center 60%")
+    let overlay =
+      Html.div [
+        prop.className "absolute top-0 left-0 right-0 z-10 p-4 md:p-6"
+        prop.children [ header ]
       ]
-      prop.children children
+    // The landscape image lives on its own layer so the bottom-edge fade
+    // (mask gradient) softens only the artwork — the tracking lanes that sit
+    // low in the scene stay fully opaque on top.
+    let imageLayer =
+      Html.div [
+        prop.className "absolute inset-0"
+        prop.style [
+          style.custom("backgroundImage", "url('/img/journey/landscape.png')")
+          style.custom("backgroundSize", "cover")
+          style.custom("backgroundPosition", "center 90%")
+          style.custom("maskImage", "linear-gradient(to bottom, black 80%, transparent 100%)")
+          style.custom("WebkitMaskImage", "linear-gradient(to bottom, black 80%, transparent 100%)")
+        ]
+      ]
+    Html.div [
+      // Full-bleed: span the whole viewport width (breaking out of the
+      // padded, max-w container) and pull up to cancel the page top padding,
+      // so the landscape touches the top and side edges of the viewport.
+      // Square corners; the bottom edge fades out via the masked image layer.
+      prop.className "relative w-screen ml-[calc(50%-50vw)] -mt-4 md:-mt-6 aspect-[16/9] md:aspect-[21/9] max-h-[55vh]"
+      prop.children (imageLayer :: overlay :: lanes)
     ]
