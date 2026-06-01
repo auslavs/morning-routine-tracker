@@ -11,73 +11,117 @@ module Journey =
     Total: int
   }
 
-  let private homeIcon =
-    Html.div [
-      prop.className "text-3xl md:text-4xl"
-      prop.text "🏠"
-    ]
+  // Horizontal band along which avatars travel — the path in the
+  // landscape image runs roughly from x=18% (front gate of the house) to
+  // x=78% (front of the school).
+  let private pathLeftPct = 18.0
+  let private pathRightPct = 78.0
+  let private pathWidthPct = pathRightPct - pathLeftPct
 
-  let private schoolIcon =
-    Html.div [
-      prop.className "text-3xl md:text-4xl"
-      prop.text "🏫"
-    ]
+  let private positionForPercent (percent: float) =
+    let clamped = max 0.0 (min 1.0 percent)
+    pathLeftPct + (clamped * pathWidthPct)
 
-  // Renders a single horizontal track with the child's avatar positioned at percent.
-  let track (j: ChildJourney) =
-    let clamped = max 0.0 (min 1.0 j.Percent)
-    let percentStr = sprintf "%.0f%%" (clamped * 100.0)
-    Html.div [
-      prop.className "flex flex-col gap-1"
-      prop.children [
-        Html.div [
-          prop.className "flex items-center justify-between text-sm font-semibold"
-          prop.children [
-            Html.span [
-              prop.style [ style.color j.Child.AccentColor ]
-              prop.text j.Child.Name
-            ]
-            Html.span [
-              prop.className "text-gray-600"
-              prop.text percentStr
-            ]
-          ]
+  // Spread N children across vertical lanes 42% .. 70% of container height.
+  let private laneY (index: int) (count: int) =
+    if count <= 1 then 60.0
+    else
+      let top = 42.0
+      let bottom = 70.0
+      top + (float index / float (count - 1)) * (bottom - top)
+
+  let private clamp lo hi v = max lo (min hi v)
+
+  let private laneElements (count: int) (index: int) (j: ChildJourney) : ReactElement list =
+    let yPct = laneY index count
+    let xPct = positionForPercent j.Percent
+    let dotCount = max 1 j.Total
+    let segment = pathWidthPct / float (dotCount + 1)
+    let dotXAt i = pathLeftPct + segment * float (i + 1)
+    [
+      // Track line — backdrop
+      Html.div [
+        prop.className "absolute h-1.5 rounded-full bg-white/55 shadow-sm"
+        prop.style [
+          style.top (length.perc yPct)
+          style.left (length.perc pathLeftPct)
+          style.width (length.perc pathWidthPct)
+          style.marginTop (length.px -3)
         ]
-        Html.div [
-          prop.className "relative w-full h-12 flex items-center"
-          prop.children [
-            homeIcon
-            Html.div [
-              prop.className "flex-1 relative mx-2"
-              prop.children [
-                Html.div [
-                  prop.className "absolute inset-y-1/2 left-0 right-0 h-1 -mt-0.5 rounded-full bg-gray-200"
-                ]
-                Html.div [
-                  prop.className "absolute inset-y-1/2 left-0 h-1 -mt-0.5 rounded-full transition-all duration-500"
-                  prop.style [
-                    style.width (length.perc (clamped * 100.0))
-                    style.backgroundColor j.Child.AccentColor
-                  ]
-                ]
-                Html.div [
-                  prop.className "absolute top-1/2 -translate-x-1/2 -translate-y-1/2 text-2xl md:text-3xl transition-all duration-500 select-none"
-                  prop.style [
-                    style.left (length.perc (clamped * 100.0))
-                  ]
-                  prop.text (AvatarKind.toEmoji j.Child.Avatar)
-                ]
-              ]
-            ]
-            schoolIcon
-          ]
+      ]
+
+      // Track line — filled portion (matches accent colour)
+      Html.div [
+        prop.className "absolute h-1.5 rounded-full shadow transition-all duration-500"
+        prop.style [
+          style.top (length.perc yPct)
+          style.left (length.perc pathLeftPct)
+          style.width (length.perc (pathWidthPct * clamp 0.0 1.0 j.Percent))
+          style.marginTop (length.px -3)
+          style.backgroundColor j.Child.AccentColor
         ]
+      ]
+
+      // Child name label pinned to the start of the track
+      Html.div [
+        prop.className "absolute font-bold text-xs md:text-sm bg-white/85 backdrop-blur rounded-full px-2 py-0.5 shadow border-2"
+        prop.style [
+          style.top (length.perc yPct)
+          style.left (length.perc 2.0)
+          style.marginTop (length.px -12)
+          style.color j.Child.AccentColor
+          style.borderColor j.Child.AccentColor
+        ]
+        prop.text j.Child.Name
+      ]
+
+      // Task dots
+      for i in 0 .. dotCount - 1 do
+        let filled = i < j.Completed
+        Html.div [
+          prop.className "absolute -translate-x-1/2 -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 rounded-full border-2 border-white shadow flex items-center justify-center text-white text-[9px] md:text-[10px] font-bold"
+          prop.style [
+            style.top (length.perc yPct)
+            style.left (length.perc (dotXAt i))
+            style.backgroundColor (if filled then j.Child.AccentColor else "#e5e7eb")
+          ]
+          prop.text (if filled then "✓" else "")
+        ]
+
+      // Percent badge above current position
+      Html.div [
+        prop.className "absolute -translate-x-1/2 -translate-y-full bg-white/95 backdrop-blur px-2 py-0.5 rounded-full text-xs font-extrabold shadow ring-1 ring-black/5"
+        prop.style [
+          style.top (length.perc (yPct - 7.0))
+          style.left (length.perc xPct)
+          style.color j.Child.AccentColor
+        ]
+        prop.text (sprintf "%.0f%%" (j.Percent * 100.0))
+      ]
+
+      // Avatar character at progress position
+      Html.div [
+        prop.className "absolute -translate-x-1/2 -translate-y-1/2 text-3xl md:text-5xl drop-shadow-lg select-none transition-all duration-500"
+        prop.style [
+          style.top (length.perc yPct)
+          style.left (length.perc xPct)
+        ]
+        prop.text (AvatarKind.toEmoji j.Child.Avatar)
       ]
     ]
 
-  // Stacked per-child tracks (works for mobile + as a fallback layout).
   let render (journeys: ChildJourney list) =
+    let count = journeys.Length
+    let children =
+      journeys
+      |> List.mapi (fun i j -> laneElements count i j)
+      |> List.concat
     Html.div [
-      prop.className "bg-gradient-to-b from-sky-100 to-emerald-50 rounded-2xl p-4 md:p-6 shadow-sm space-y-4"
-      prop.children (journeys |> List.map track)
+      prop.className "relative w-full aspect-[16/9] md:aspect-[2/1] rounded-3xl overflow-hidden shadow-lg bg-gradient-to-b from-sky-200 via-sky-100 to-emerald-200"
+      prop.style [
+        style.custom("backgroundImage", "url('/img/journey/landscape.png')")
+        style.custom("backgroundSize", "cover")
+        style.custom("backgroundPosition", "center 60%")
+      ]
+      prop.children children
     ]

@@ -5,13 +5,17 @@ open Feliz
 
 module SettingsView =
 
+  // Nine-colour palette pulled from the Morning Routine asset-pack reference.
   let private accentPalette = [
-    "#3b82f6"  // blue
-    "#10b981"  // emerald
-    "#f59e0b"  // amber
+    "#2563eb"  // blue
+    "#16a34a"  // green
+    "#facc15"  // yellow
+    "#f97316"  // orange
+    "#9333ea"  // purple
     "#ec4899"  // pink
-    "#8b5cf6"  // violet
-    "#ef4444"  // red
+    "#06b6d4"  // sky
+    "#64748b"  // gray
+    "#1e293b"  // navy
   ]
 
   let private newId (prefix: string) =
