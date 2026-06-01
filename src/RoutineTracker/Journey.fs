@@ -39,9 +39,22 @@ module Journey =
     let segment = pathWidthPct / float (dotCount + 1)
     let dotXAt i = pathLeftPct + segment * float (i + 1)
     [
+      // Translucent lane band so dots, names and the track stay legible
+      // over the illustrated landscape underneath.
+      Html.div [
+        prop.className "absolute rounded-full bg-white/55 backdrop-blur-sm ring-1 ring-white/40 shadow-sm"
+        prop.style [
+          style.top (length.perc yPct)
+          style.left (length.perc 1.0)
+          style.width (length.perc 98.0)
+          style.height (length.perc 14.0)
+          style.marginTop (length.perc -7.0)
+        ]
+      ]
+
       // Track line — backdrop
       Html.div [
-        prop.className "absolute h-1.5 rounded-full bg-white/55 shadow-sm"
+        prop.className "absolute h-1.5 rounded-full bg-white/70 shadow-sm"
         prop.style [
           style.top (length.perc yPct)
           style.left (length.perc pathLeftPct)
