@@ -6,10 +6,15 @@
     <None Include="index.html" />
     <Compile Include="Audio.fs" />
     <Compile Include="RoutineTracker\Types.fs" />
+    <Compile Include="Persistence.fs" />
     <Compile Include="RoutineTracker\State.fs" />
-    <Compile Include="RoutineTracker\CircularTimer.fs" />
-    <Compile Include="RoutineTracker\ControlPanel.fs" />
-    <Compile Include="RoutineTracker\TaskChecklist.fs" />
+    <Compile Include="RoutineTracker\FamilyScore.fs" />
+    <Compile Include="RoutineTracker\Journey.fs" />
+    <Compile Include="RoutineTracker\TaskCard.fs" />
+    <Compile Include="RoutineTracker\MyMorning.fs" />
+    <Compile Include="RoutineTracker\Placeholder.fs" />
+    <Compile Include="RoutineTracker\SettingsView.fs" />
+    <Compile Include="RoutineTracker\BottomNav.fs" />
     <Compile Include="RoutineTracker\RoutineTracker.fs" />
     <Compile Include="Main.fs" />
   </ItemGroup>
@@ -17,5 +22,6 @@
     <PackageReference Include="Feliz" Version="3.3.3" />
     <PackageReference Include="Feliz.UseElmish" Version="5.0.0" />
     <PackageReference Include="Fable.React" Version="9.4.0" />
+    <PackageReference Include="Thoth.Json" Version="10.5.0" />
   </ItemGroup>
 </Project>
